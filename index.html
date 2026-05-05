@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimax 音乐生成</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            color: #888;
+            margin-bottom: 2rem;
+        }
+        .card {
+            background: #16161e;
+            border: 1px solid #2a2a3a;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #a0a0b0;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: #b0b0c0;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: #1e1e28;
+            border: 1px solid #3a3a4a;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 0.95rem;
+            margin-bottom: 1rem;
+            transition: border-color 0.2s;
+        }
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        input.readonly-input {
+            background: #16161e;
+            border-color: #2a2a3a;
+            color: #888;
+            cursor: not-allowed;
+        }
+        input[type="file"] {
+            background: #1e1e28;
+            padding: 0.75rem;
+        }
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .row-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1rem;
+        }
+        .btn {
+            padding: 0.875rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-secondary {
+            background: #2a2a3a;
+            color: #e0e0e0;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+        .btn-secondary:hover {
+            background: #3a3a4a;
+        }
+        .btn-row {
+            margin-top: 1rem;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .tab {
+            padding: 0.75rem 1.25rem;
+            background: #1e1e28;
+            border: 1px solid #3a3a4a;
+            border-radius: 8px;
+            cursor: pointer;
+            color: #b0b0c0;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .tab:hover {
+            border-color: #667eea;
+        }
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: #fff;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .result {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: #1a1a24;
+            border-radius: 8px;
+            display: none;
+        }
+        .result.show {
+            display: block;
+        }
+        .result audio {
+            width: 100%;
+            margin-top: 1rem;
+        }
+        .error {
+            color: #ff6b6b;
+            padding: 1rem;
+            background: rgba(255, 107, 107, 0.1);
+            border-radius: 8px;
+            margin-top: 1rem;
+            display: none;
+        }
+        .error.show {
+            display: block;
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #fff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .status {
+            color: #888;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+        }
+        .info {
+            color: #4ecdc4;
+            padding: 0.75rem;
+            background: rgba(78, 205, 196, 0.1);
+            border-radius: 8px;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .generated-lyrics {
+            background: #12121a;
+            border: 1px solid #3a3a4a;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 0.5rem;
+            white-space: pre-wrap;
+            font-family: inherit;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .hidden {
+            display: none;
+        }
+        .section-divider {
+            height: 1px;
+            background: #2a2a3a;
+            margin: 1.5rem 0;
+        }
+        .cover-upload {
+            background: #12121a;
+            border: 2px dashed #3a3a4a;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        .cover-upload:hover {
+            border-color: #667eea;
+        }
+        .cover-upload input[type="file"] {
+            margin-bottom: 0;
+        }
+        .cover-info {
+            background: rgba(102, 126, 234, 0.1);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+        .cover-info h4 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>音乐生成</h1>
+        <p class="subtitle">使用 Minimax API 生成音乐</p>
+
+        <div class="card">
+            <div class="card-title">API 配置</div>
+            <div class="row">
+                <div>
+                    <label for="apiKey">API 密钥</label>
+                    <input type="password" id="apiKey" placeholder="请输入您的 Minimax API 密钥">
+                </div>
+                <div>
+                    <label for="baseUrl">Base URL（API 地址）</label>
+                    <input type="text" id="baseUrl" value="https://api.minimaxi.com" readonly class="readonly-input">
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">选择模式</div>
+            <div class="tabs">
+                <button class="tab active" data-tab="lyrics-music">歌词 + 音乐生成</button>
+                <button class="tab" data-tab="instrumental">纯音乐生成</button>
+                <button class="tab" data-tab="cover">翻唱生成</button>
+            </div>
+
+            <!-- 歌词 + 音乐生成 模式 -->
+            <div id="lyrics-music" class="tab-content active">
+                <div class="card-title">歌词生成</div>
+                <label for="lyricsPrompt">歌曲主题/描述</label>
+                <input type="text" id="lyricsPrompt" placeholder="例如：一首关于夏日海边的轻快情歌">
+
+                <label for="lyricsMode">生成模式</label>
+                <select id="lyricsMode">
+                    <option value="write_full_song">写完整歌曲</option>
+                    <option value="edit">编辑/续写歌词</option>
+                </select>
+
+                <div id="existingLyricsWrapper" class="hidden">
+                    <label for="existingLyrics">现有歌词（编辑模式）</label>
+                    <textarea id="existingLyrics" placeholder="请输入现有歌词..."></textarea>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn btn-secondary" id="generateLyricsBtn" onclick="generateLyrics()">生成歌词</button>
+                </div>
+
+                <div id="lyricsResult" class="hidden">
+                    <div class="section-divider"></div>
+                    <div class="card-title">生成的歌词（可编辑）</div>
+                    <div class="info" id="songInfo"></div>
+                    <div class="generated-lyrics" id="generatedLyricsDisplay"></div>
+                    <textarea id="editableLyrics" class="generated-lyrics" style="display:none;"></textarea>
+                    <div class="btn-row">
+                        <button class="btn btn-secondary" id="editLyricsBtn" onclick="toggleLyricsEdit()">编辑歌词</button>
+                    </div>
+
+                    <div class="section-divider"></div>
+                    <div class="card-title">音乐生成</div>
+                    <label for="musicPrompt">音乐风格描述</label>
+                    <input type="text" id="musicPromptForLyrics" placeholder="例如：流行音乐, 轻快, 夏日氛围">
+
+                    <label for="audioFormat">音频格式</label>
+                    <select id="audioFormatLyrics">
+                        <option value="url">URL（推荐，可直接播放/下载）</option>
+                        <option value="hex">HEX编码（需转换）</option>
+                    </select>
+
+                    <div class="row">
+                        <div>
+                            <label for="sampleRate">采样率</label>
+                            <select id="sampleRateLyrics">
+                                <option value="44100">44100 Hz</option>
+                                <option value="32000">32000 Hz</option>
+                                <option value="24000">24000 Hz</option>
+                                <option value="16000">16000 Hz</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="bitrate">比特率</label>
+                            <select id="bitrateLyrics">
+                                <option value="256000">256 kbps（推荐）</option>
+                                <option value="128000">128 kbps</option>
+                                <option value="64000">64 kbps</option>
+                                <option value="32000">32 kbps</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="btn-row">
+                        <button class="btn btn-primary" id="generateMusicFromLyricsBtn" onclick="generateMusicFromLyrics()">生成音乐</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 纯音乐生成 模式 -->
+            <div id="instrumental" class="tab-content">
+                <div class="card-title">纯音乐生成</div>
+                <label for="instrumentalPrompt">音乐描述（风格、情绪、场景）</label>
+                <input type="text" id="instrumentalPrompt" placeholder="例如：流行音乐, 难过, 适合在下雨的晚上">
+                <p style="color: #888; font-size: 0.85rem; margin-bottom: 1rem;">注意：纯音乐无人声，歌词非必填</p>
+
+                <label for="audioFormatInst">音频格式</label>
+                <select id="audioFormatInst">
+                    <option value="url">URL（推荐，可直接播放/下载）</option>
+                    <option value="hex">HEX编码（需转换）</option>
+                </select>
+
+                <div class="row">
+                    <div>
+                        <label for="sampleRateInst">采样率</label>
+                        <select id="sampleRateInst">
+                            <option value="44100">44100 Hz</option>
+                            <option value="32000">32000 Hz</option>
+                            <option value="24000">24000 Hz</option>
+                            <option value="16000">16000 Hz</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="bitrateInst">比特率</label>
+                        <select id="bitrateInst">
+                            <option value="256000">256 kbps（推荐）</option>
+                            <option value="128000">128 kbps</option>
+                            <option value="64000">64 kbps</option>
+                            <option value="32000">32 kbps</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn btn-primary" id="generateInstrumentalBtn" onclick="generateInstrumental()">生成纯音乐</button>
+                </div>
+            </div>
+
+            <!-- 翻唱生成 模式 -->
+            <div id="cover" class="tab-content">
+                <div class="card-title">翻唱生成</div>
+
+                <label for="coverMode">翻唱模式</label>
+                <select id="coverMode" onchange="toggleCoverMode()">
+                    <option value="one">一步翻唱（快捷）</option>
+                    <option value="two">两步翻唱（可修改歌词）</option>
+                </select>
+
+                <div class="row">
+                    <div>
+                        <label for="coverAudioUrl">参考音频 URL</label>
+                        <input type="text" id="coverAudioUrl" placeholder="https://example.com/song.mp3">
+                    </div>
+                    <div>
+                        <label for="coverPrompt">目标风格描述</label>
+                        <input type="text" id="coverPrompt" placeholder="例如：爵士风格，慵懒深夜酒吧">
+                    </div>
+                </div>
+
+                <div class="cover-upload">
+                    <label for="coverAudioFile">或上传音频文件（6秒-6分钟，最大50MB）</label>
+                    <input type="file" id="coverAudioFile" accept="audio/*" onchange="handleFileUpload(this)">
+                    <p id="uploadStatus" style="color: #888; font-size: 0.85rem; margin-top: 0.5rem;"></p>
+                </div>
+                <p style="color: #888; font-size: 0.85rem; margin-bottom: 1rem;">音频要求：6秒-6分钟，最大50MB，支持 mp3、wav、flac 等格式</p>
+
+                <!-- 两步翻唱额外选项 -->
+                <div id="twoStepOptions" class="hidden">
+                    <div class="cover-info">
+                        <h4>两步翻唱说明</h4>
+                        <p>先对音频进行前处理，提取歌词后可以修改，再生成翻唱版本。</p>
+                    </div>
+                    <div class="btn-row">
+                        <button class="btn btn-secondary" id="preprocessBtn" onclick="preprocessCover()">预处理音频</button>
+                    </div>
+
+                    <div id="preprocessResult" class="hidden">
+                        <div class="section-divider"></div>
+                        <div class="card-title">提取的歌词（可编辑）</div>
+                        <div class="info" id="coverAudioDuration"></div>
+                        <div class="generated-lyrics" id="extractedLyricsDisplay"></div>
+                        <textarea id="editableCoverLyrics" class="generated-lyrics" style="display:none;"></textarea>
+                        <div class="btn-row">
+                            <button class="btn btn-secondary" onclick="toggleCoverLyricsEdit()">编辑歌词</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="oneStepOptions">
+                    <label for="audioFormatCover">音频格式</label>
+                    <select id="audioFormatCover">
+                        <option value="url">URL（推荐，可直接播放/下载）</option>
+                        <option value="hex">HEX编码（需转换）</option>
+                    </select>
+
+                    <div class="row">
+                        <div>
+                            <label for="sampleRateCover">采样率</label>
+                            <select id="sampleRateCover">
+                                <option value="44100">44100 Hz</option>
+                                <option value="32000">32000 Hz</option>
+                                <option value="24000">24000 Hz</option>
+                                <option value="16000">16000 Hz</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="bitrateCover">比特率</label>
+                            <select id="bitrateCover">
+                                <option value="256000">256 kbps（推荐）</option>
+                                <option value="128000">128 kbps</option>
+                                <option value="64000">64 kbps</option>
+                                <option value="32000">32 kbps</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="btn-row" id="generateCoverBtnWrapper">
+                    <button class="btn btn-primary" id="generateCoverBtn" onclick="generateCover()">生成翻唱</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="result" id="result">
+            <div class="card-title">生成的音频</div>
+            <audio id="audioPlayer" controls></audio>
+            <div class="btn-row">
+                <button class="btn btn-secondary" id="downloadBtn" onclick="downloadAudio()">下载音频</button>
+            </div>
+            <p class="status" id="taskStatus"></p>
+        </div>
+    </div>
+
+    <script>
+        let currentAudioData = null;
+        let currentTaskId = null;
+        let currentCoverFeatureId = null;
+        let isHexFormat = false;
+        let uploadedAudioBase64 = null;
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Lyrics mode toggle
+        document.getElementById('lyricsMode').addEventListener('change', function() {
+            const wrapper = document.getElementById('existingLyricsWrapper');
+            wrapper.classList.toggle('hidden', this.value !== 'edit');
+        });
+
+        // Cover mode toggle
+        function toggleCoverMode() {
+            const mode = document.getElementById('coverMode').value;
+            const twoStepOptions = document.getElementById('twoStepOptions');
+            const oneStepOptions = document.getElementById('oneStepOptions');
+
+            if (mode === 'two') {
+                twoStepOptions.classList.remove('hidden');
+                document.getElementById('generateCoverBtnWrapper').classList.add('hidden');
+            } else {
+                twoStepOptions.classList.add('hidden');
+                document.getElementById('generateCoverBtnWrapper').classList.remove('hidden');
+            }
+        }
+
+        // Handle file upload
+        function handleFileUpload(input) {
+            const file = input.files[0];
+            const status = document.getElementById('uploadStatus');
+
+            if (!file) {
+                status.textContent = '';
+                uploadedAudioBase64 = null;
+                return;
+            }
+
+            // Check file size (50MB max)
+            if (file.size > 50 * 1024 * 1024) {
+                status.textContent = '文件过大，请选择小于 50MB 的文件';
+                status.style.color = '#ff6b6b';
+                input.value = '';
+                uploadedAudioBase64 = null;
+                return;
+            }
+
+            status.textContent = '正在读取文件...';
+            status.style.color = '#888';
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Remove data URL prefix to get base64
+                const base64 = e.target.result.split(',')[1];
+                uploadedAudioBase64 = base64;
+                status.textContent = `已选择: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                status.style.color = '#4ecdc4';
+                // Clear URL input when file is uploaded
+                document.getElementById('coverAudioUrl').value = '';
+            };
+            reader.onerror = function() {
+                status.textContent = '文件读取失败';
+                status.style.color = '#ff6b6b';
+                uploadedAudioBase64 = null;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Toggle lyrics edit mode
+        function toggleLyricsEdit() {
+            const display = document.getElementById('generatedLyricsDisplay');
+            const edit = document.getElementById('editableLyrics');
+            const btn = document.getElementById('editLyricsBtn');
+
+            if (edit.style.display === 'none') {
+                edit.style.display = 'block';
+                edit.value = display.textContent;
+                display.style.display = 'none';
+                btn.textContent = '完成编辑';
+            } else {
+                display.textContent = edit.value;
+                display.style.display = 'block';
+                edit.style.display = 'none';
+                btn.textContent = '编辑歌词';
+            }
+        }
+
+        // Toggle cover lyrics edit mode
+        function toggleCoverLyricsEdit() {
+            const display = document.getElementById('extractedLyricsDisplay');
+            const edit = document.getElementById('editableCoverLyrics');
+            const btn = event.target;
+
+            if (edit.style.display === 'none') {
+                edit.style.display = 'block';
+                edit.value = display.textContent;
+                display.style.display = 'none';
+                btn.textContent = '完成编辑';
+            } else {
+                display.textContent = edit.value;
+                display.style.display = 'block';
+                edit.style.display = 'none';
+                btn.textContent = '编辑歌词';
+            }
+        }
+
+        // API helper
+        async function callAPI(url, data) {
+            const apiKey = document.getElementById('apiKey').value.trim();
+
+            if (!apiKey) {
+                throw new Error('请输入 API 密钥');
+            }
+
+            console.log('API Request:', url, data);
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify(data)
+            });
+
+            const responseText = await response.text();
+            console.log('API Response:', responseText.substring(0, 500));
+
+            let result;
+            try {
+                result = JSON.parse(responseText);
+            } catch (e) {
+                throw new Error(`响应解析失败: ${responseText.substring(0, 200)}`);
+            }
+
+            if (!response.ok) {
+                const msg = result.base_resp?.status_msg || result.error?.message || `请求失败 (${response.status})`;
+                throw new Error(msg);
+            }
+
+            return result;
+        }
+
+        // Generate lyrics
+        async function generateLyrics() {
+            const btn = document.getElementById('generateLyricsBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>生成中...';
+            hideError();
+
+            try {
+                const mode = document.getElementById('lyricsMode').value;
+                const prompt = document.getElementById('lyricsPrompt').value.trim();
+                const lyrics = document.getElementById('existingLyrics').value.trim();
+
+                if (!prompt && mode === 'write_full_song') {
+                    throw new Error('请输入歌曲主题/描述');
+                }
+                if (mode === 'edit' && !lyrics) {
+                    throw new Error('请输入要编辑的歌词');
+                }
+
+                const data = await callAPI('https://api.minimaxi.com/v1/lyrics_generation', {
+                    mode: mode,
+                    prompt: prompt || undefined,
+                    lyrics: mode === 'edit' ? lyrics : undefined
+                });
+
+                document.getElementById('songInfo').textContent = `歌名：${data.song_title || '未命名'} | 风格：${data.style_tags || '未指定'}`;
+                document.getElementById('generatedLyricsDisplay').textContent = data.lyrics;
+                document.getElementById('editableLyrics').value = data.lyrics;
+                document.getElementById('lyricsResult').classList.remove('hidden');
+
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '生成歌词';
+            }
+        }
+
+        // Generate music from lyrics
+        async function generateMusicFromLyrics() {
+            const btn = document.getElementById('generateMusicFromLyricsBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>生成中...';
+            hideError();
+            document.getElementById('result').classList.remove('show');
+
+            try {
+                const lyrics = document.getElementById('editableLyrics').style.display === 'none'
+                    ? document.getElementById('generatedLyricsDisplay').textContent
+                    : document.getElementById('editableLyrics').value;
+                const prompt = document.getElementById('musicPromptForLyrics').value.trim();
+                const outputFormat = document.getElementById('audioFormatLyrics').value;
+                const sampleRate = parseInt(document.getElementById('sampleRateLyrics').value);
+                const bitrate = parseInt(document.getElementById('bitrateLyrics').value);
+
+                if (!lyrics) {
+                    throw new Error('请先生成或输入歌词');
+                }
+
+                isHexFormat = outputFormat === 'hex';
+
+                const data = await callAPI('https://api.minimaxi.com/v1/music_generation', {
+                    model: 'music-2.6',
+                    prompt: prompt || '流行音乐',
+                    lyrics: lyrics,
+                    output_format: outputFormat,
+                    audio_setting: {
+                        sample_rate: sampleRate,
+                        bitrate: bitrate,
+                        format: 'mp3'
+                    }
+                });
+
+                handleMusicResult(data);
+
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '生成音乐';
+            }
+        }
+
+        // Generate instrumental music
+        async function generateInstrumental() {
+            const btn = document.getElementById('generateInstrumentalBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>生成中...';
+            hideError();
+            document.getElementById('result').classList.remove('show');
+
+            try {
+                const prompt = document.getElementById('instrumentalPrompt').value.trim();
+                const outputFormat = document.getElementById('audioFormatInst').value;
+                const sampleRate = parseInt(document.getElementById('sampleRateInst').value);
+                const bitrate = parseInt(document.getElementById('bitrateInst').value);
+
+                if (!prompt) {
+                    throw new Error('请输入音乐描述');
+                }
+
+                isHexFormat = outputFormat === 'hex';
+
+                const data = await callAPI('https://api.minimaxi.com/v1/music_generation', {
+                    model: 'music-2.6',
+                    prompt: prompt,
+                    is_instrumental: true,
+                    output_format: outputFormat,
+                    audio_setting: {
+                        sample_rate: sampleRate,
+                        bitrate: bitrate,
+                        format: 'mp3'
+                    }
+                });
+
+                handleMusicResult(data);
+
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '生成纯音乐';
+            }
+        }
+
+        // Preprocess cover audio
+        async function preprocessCover() {
+            const btn = document.getElementById('preprocessBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>处理中...';
+            hideError();
+
+            try {
+                const audioUrl = document.getElementById('coverAudioUrl').value.trim();
+
+                if (!audioUrl && !uploadedAudioBase64) {
+                    throw new Error('请输入参考音频 URL 或上传音频文件');
+                }
+
+                const payload = {
+                    model: 'music-cover'
+                };
+
+                if (uploadedAudioBase64) {
+                    payload.audio_base64 = uploadedAudioBase64;
+                } else {
+                    payload.audio_url = audioUrl;
+                }
+
+                const data = await callAPI('https://api.minimaxi.com/v1/music_cover_preprocess', payload);
+
+                currentCoverFeatureId = data.cover_feature_id;
+                document.getElementById('coverAudioDuration').textContent = `音频时长：${data.audio_duration} 秒`;
+                document.getElementById('extractedLyricsDisplay').textContent = data.formatted_lyrics;
+                document.getElementById('editableCoverLyrics').value = data.formatted_lyrics;
+                document.getElementById('preprocessResult').classList.remove('hidden');
+                document.getElementById('generateCoverBtnWrapper').classList.remove('hidden');
+
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '预处理音频';
+            }
+        }
+
+        // Generate cover
+        async function generateCover() {
+            const btn = document.getElementById('generateCoverBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>生成中...';
+            hideError();
+            document.getElementById('result').classList.remove('show');
+
+            try {
+                const mode = document.getElementById('coverMode').value;
+                const audioUrl = document.getElementById('coverAudioUrl').value.trim();
+                const prompt = document.getElementById('coverPrompt').value.trim();
+                const outputFormat = document.getElementById('audioFormatCover').value;
+                const sampleRate = parseInt(document.getElementById('sampleRateCover').value);
+                const bitrate = parseInt(document.getElementById('bitrateCover').value);
+
+                if (!prompt) {
+                    throw new Error('请输入目标风格描述');
+                }
+
+                isHexFormat = outputFormat === 'hex';
+
+                let payload = {
+                    model: 'music-cover',
+                    prompt: prompt,
+                    output_format: outputFormat,
+                    audio_setting: {
+                        sample_rate: sampleRate,
+                        bitrate: bitrate,
+                        format: 'mp3'
+                    }
+                };
+
+                if (mode === 'two') {
+                    // Two-step cover
+                    if (!currentCoverFeatureId) {
+                        throw new Error('请先进行音频预处理');
+                    }
+                    const lyrics = document.getElementById('editableCoverLyrics').style.display === 'none'
+                        ? document.getElementById('extractedLyricsDisplay').textContent
+                        : document.getElementById('editableCoverLyrics').value;
+
+                    payload.cover_feature_id = currentCoverFeatureId;
+                    payload.lyrics = lyrics;
+                } else {
+                    // One-step cover
+                    if (!audioUrl && !uploadedAudioBase64) {
+                        throw new Error('请输入参考音频 URL 或上传音频文件');
+                    }
+                    if (uploadedAudioBase64) {
+                        payload.audio_base64 = uploadedAudioBase64;
+                    } else {
+                        payload.audio_url = audioUrl;
+                    }
+                }
+
+                const data = await callAPI('/v1/music_generation', payload);
+                handleMusicResult(data);
+
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '生成翻唱';
+            }
+        }
+
+        // Handle music generation result
+        function handleMusicResult(data) {
+            if (data.base_resp?.status_code !== 0 && data.base_resp?.status_code !== undefined) {
+                throw new Error(data.base_resp.status_msg || '生成失败');
+            }
+
+            currentTaskId = data.trace_id || Date.now().toString();
+
+            if (data.data) {
+                if (data.data.status === 2) {
+                    // Completed
+                    if (isHexFormat) {
+                        currentAudioData = hexToBlob(data.data.audio, 'audio/mpeg');
+                    } else {
+                        currentAudioData = data.data.audio;
+                    }
+                    document.getElementById('audioPlayer').src = currentAudioData;
+                    document.getElementById('taskStatus').textContent = '生成完成！';
+                    document.getElementById('result').classList.add('show');
+                } else {
+                    document.getElementById('taskStatus').textContent = `状态：合成中 (${data.data.status})`;
+                    document.getElementById('result').classList.add('show');
+                    // Poll for result
+                    pollForMusicResult(data.trace_id);
+                }
+            } else if (data.audio) {
+                // Direct audio return (url format)
+                currentAudioData = data.audio;
+                document.getElementById('audioPlayer').src = data.audio;
+                document.getElementById('taskStatus').textContent = '生成完成！';
+                document.getElementById('result').classList.add('show');
+            }
+        }
+
+        // Poll for music result
+        async function pollForMusicResult(traceId) {
+            const maxAttempts = 60;
+            let attempts = 0;
+
+            const poll = async () => {
+                if (attempts >= maxAttempts) {
+                    showError('生成超时，请重试');
+                    return;
+                }
+
+                try {
+                    const apiKey = document.getElementById('apiKey').value.trim();
+                    const baseUrl = document.getElementById('baseUrl').value.trim() || 'https://api.minimaxi.com';
+
+                    const response = await fetch(`${baseUrl}/v1/music_generation?trace_id=${traceId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${apiKey}`
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (data.data?.status === 2) {
+                        if (isHexFormat) {
+                            currentAudioData = hexToBlob(data.data.audio, 'audio/mpeg');
+                        } else {
+                            currentAudioData = data.data.audio;
+                        }
+                        document.getElementById('audioPlayer').src = currentAudioData;
+                        document.getElementById('taskStatus').textContent = '生成完成！';
+                        return;
+                    }
+
+                    attempts++;
+                    document.getElementById('taskStatus').textContent = `状态：合成中 (${data.data?.status || '?'}) (${attempts}/${maxAttempts})`;
+                    setTimeout(poll, 2000);
+
+                } catch (error) {
+                    showError(error.message);
+                }
+            };
+
+            poll();
+        }
+
+        // Convert hex to Blob
+        function hexToBlob(hex, mimeType) {
+            const bytes = new Uint8Array(hex.length / 2);
+            for (let i = 0; i < hex.length; i += 2) {
+                bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+            }
+            return new Blob([bytes], { type: mimeType });
+        }
+
+        // Download audio
+        function downloadAudio() {
+            if (!currentAudioData) return;
+
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(currentAudioData);
+            a.download = `music_${currentTaskId || Date.now()}.mp3`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // Show/hide error
+        function showError(message) {
+            const errorEl = document.getElementById('error');
+            errorEl.textContent = message;
+            errorEl.classList.add('show');
+        }
+
+        function hideError() {
+            document.getElementById('error').classList.remove('show');
+        }
+    </script>
+</body>
+</html>
