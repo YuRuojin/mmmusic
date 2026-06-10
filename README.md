@@ -1,1 +1,1 @@
-一个调用minimax tokenplan，体验套餐中包含的音乐生成额度的纯html工具
+一个调用minimax tokenplan，体验套餐中包含的音乐生成的纯html工具
