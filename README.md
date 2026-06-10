@@ -1,0 +1,1 @@
+一个适用于minimax tokenplan中使用音乐生成的纯html工具
